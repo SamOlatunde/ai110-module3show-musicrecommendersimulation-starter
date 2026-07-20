@@ -120,6 +120,89 @@ Use this section to document the experiments you ran. For example:
 
 ---
 
+## Adversarial Profiles
+```
+Loaded songs: 18
+
+=== Contradictory energy/mood ===
+
+Top recommendations:
+
+Library Rain - Score: 2.31
+Because: Matches favorite genre 'lofi'; High acousticness matches preference for acoustic music
+
+Focus Flow - Score: 2.28
+Because: Matches favorite genre 'lofi'; High acousticness matches preference for acoustic music
+
+Midnight Coding - Score: 2.23
+Because: Matches favorite genre 'lofi'; High acousticness matches preference for acoustic music
+
+Coffee Shop Stories - Score: 1.36
+Because: High acousticness matches preference for acoustic music
+
+Spacewalk Thoughts - Score: 1.30
+Because: High acousticness matches preference for acoustic music
+
+
+=== Genre not in catalog ===
+
+Top recommendations:
+
+Midnight Coding - Score: 2.21
+Because: Matches favorite mood 'chill'; Energy is close to target
+
+Library Rain - Score: 1.99
+Because: Matches favorite mood 'chill'; Energy is close to target
+
+Spacewalk Thoughts - Score: 1.86
+Because: Matches favorite mood 'chill'
+
+Velvet Whisper - Score: 1.65
+Because: Energy is close to target; Low acousticness matches preference for non-acoustic music
+
+Concrete Kingdom - Score: 1.62
+Because: Low acousticness matches preference for non-acoustic music
+
+
+=== High-energy acoustic ===
+
+Top recommendations:
+
+Library Rain - Score: 2.26
+Because: Matches favorite mood 'chill'; High acousticness matches preference for acoustic music
+
+Spacewalk Thoughts - Score: 2.25
+Because: Matches favorite mood 'chill'; High acousticness matches preference for acoustic music
+
+Etude for Rain - Score: 2.25
+Because: Matches favorite genre 'classical'; High acousticness matches preference for acoustic music
+
+Midnight Coding - Score: 2.18
+Because: Matches favorite mood 'chill'; High acousticness matches preference for acoustic music
+
+Coffee Shop Stories - Score: 1.31
+Because: High acousticness matches preference for acoustic music
+
+
+=== All-mismatch ===
+
+Top recommendations:
+
+Velvet Whisper - Score: 1.65
+Because: Energy is close to target; Low acousticness matches preference for non-acoustic music
+
+Concrete Kingdom - Score: 1.62
+Because: Low acousticness matches preference for non-acoustic music
+
+Warehouse Pulse - Score: 1.57
+Because: Low acousticness matches preference for non-acoustic music
+
+Night Drive Loop - Score: 1.53
+Because: Low acousticness matches preference for non-acoustic music
+
+Gym Hero - Score: 1.52
+Because: Low acousticness matches preference for non-acoustic music
+```
 ## Limitations and Risks
 
 Summarize some limitations of your recommender.
@@ -134,16 +217,7 @@ You will go deeper on this in your model card.
 
 ---
 
-## Reflection
 
-Read and complete `model_card.md`:
-
-[**Model Card**](model_card.md)
-
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
 
 
 
