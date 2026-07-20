@@ -17,17 +17,35 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+**Song features used:** `genre`, `mood`, `energy`, and `acousticness`. These four were chosen because each has a directly corresponding preference on `UserProfile` — `tempo_bpm`, `valence`, and `danceability` are stored on `Song` but not currently used for scoring, since there's no matching user preference for them yet.
 
-Some prompts to answer:
+**UserProfile stores:** `favorite_genre`, `favorite_mood`, `target_energy` (a float the recommender compares songs against), and `likes_acoustic` (a boolean).
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+**Taste profile used for testing:**
 
-You can include a simple diagram or bullet list if helpful.
+```
+favorite_genre: lofi
+favorite_mood: chill
+target_energy: 0.35
+likes_acoustic: true
+```
+
+All four preferences point the same direction (calm, low-energy, acoustic-leaning), so the ranking it produces reflects genuine agreement across genre, mood, energy, and acousticness rather than one mismatched term accidentally dominating the score.
+
+**How the score is computed:** `score_song` uses an additive model — a weighted sum of four similarity terms, one per feature, each weighted equally (weight = 1):
+
+```
+score = genre_similarity + mood_similarity + energy_similarity + acoustic_bonus
+```
+
+- **Genre similarity** — binary match: `1.0` if `song.genre == user.favorite_genre`, else `0.0`.
+- **Mood similarity** — binary match: `1.0` if `song.mood == user.favorite_mood`, else `0.0`.
+- **Energy similarity** — inverse distance: `1 - abs(song.energy - user.target_energy)`. Since both values are on a 0–1 scale, this rewards songs whose energy is close to the user's target and penalizes songs that are far from it, rather than requiring an exact match.
+- **Acoustic bonus** — a conditional term based on `likes_acoustic`: if the user likes acoustic music, the bonus favors higher `acousticness`; if not, it favors lower `acousticness`.
+
+Binary match was chosen over a hand-curated similarity table for genre/mood: it avoids maintaining and re-justifying pairwise (or cluster) values every time a new genre or mood is added to `data/songs.csv`, at the cost of not distinguishing "close but not exact" matches (e.g. `indie pop` scores the same as `rock` against a `pop`-loving user — both get `0.0`).
+
+**Choosing recommendations:** the scoring rule and ranking rule are kept separate. `score_song` computes one score per song; `recommend_songs` (and `Recommender.recommend`) then sorts all songs by that score in descending order and returns the top `k`.
 
 ---
 
@@ -68,18 +86,27 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Paste a sample of your recommender's output here as a text block so a reader can see what it produces:
-
 ```
-# e.g.:
-# User profile: genre=indie, mood=chill, energy=low
-# Recommendations:
-#   1. ...
-#   2. ...
-#   3. ...
+Loaded songs: 18
+
+Top recommendations:
+
+Library Rain - Score: 3.86
+Because: Matches favorite genre 'lofi'; Matches favorite mood 'chill'; Energy is close to target; High acousticness matches preference for acoustic music
+
+Midnight Coding - Score: 3.64
+Because: Matches favorite genre 'lofi'; Matches favorite mood 'chill'; Energy is close to target; High acousticness matches preference for acoustic music
+
+Spacewalk Thoughts - Score: 2.85
+Because: Matches favorite mood 'chill'; Energy is close to target; High acousticness matches preference for acoustic music
+
+Focus Flow - Score: 2.73
+Because: Matches favorite genre 'lofi'; Energy is close to target; High acousticness matches preference for acoustic music
+
+Coffee Shop Stories - Score: 1.87
+Because: Energy is close to target; High acousticness matches preference for acoustic music
 ```
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
 
 ---
 
