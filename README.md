@@ -110,16 +110,6 @@ Because: Energy is close to target; High acousticness matches preference for aco
 
 ---
 
-## Experiments You Tried
-
-Use this section to document the experiments you ran. For example:
-
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
-
----
-
 ## Adversarial Profiles
 ```
 Loaded songs: 18
@@ -203,6 +193,26 @@ Because: Low acousticness matches preference for non-acoustic music
 Gym Hero - Score: 1.52
 Because: Low acousticness matches preference for non-acoustic music
 ```
+
+## Experiments I Tried
+
+The only experiemnt I tried was doubling the importance of energy and halfing the importance of genre. I created a temporary branch and ran main.py on all profiles. Here's a side by side comparison of the baseline and changed weights:
+
+| Profile | Baseline top 3 (weights = 1) | Energy x2 / Genre x0.5 top 3 | What changed |
+|---|---|---|---|
+| Default (lofi/chill) | Library Rain, Midnight Coding, Spacewalk Thoughts | Library Rain, Midnight Coding, Spacewalk Thoughts | Same order — all four terms already agreed, so re-weighting just changed the scores, not the ranking. |
+| Hip hop | Concrete Kingdom (genre match), Gym Hero, Storm Runner | Gym Hero, Storm Runner, Concrete Kingdom (genre match) | The genre match dropped from 1st to 3rd — mood + close energy now outweighs an exact genre match. |
+| Classical | Etude for Rain (genre match), Storm Runner, Gym Hero | Storm Runner, Gym Hero, Etude for Rain (genre match) | Same effect: genre match fell from 1st to 3rd, edged out by songs with closer energy. |
+| Pop | Gym Hero (genre match), Sunrise City (genre match), Midnight Coding | Midnight Coding, Library Rain, Spacewalk Thoughts | Both genre matches fell out of the top 3 entirely; energy-close songs took over. |
+| Contradictory energy/mood | Library Rain (genre match), Focus Flow (genre match), Midnight Coding (genre match) | Focus Flow (genre match), Library Rain (genre match), Midnight Coding (genre match) | Top 3 stayed genre matches (lofi still had reasonable energy fit), but 4th/5th place swapped in higher-energy songs (Storm Runner, Rooftop Lights) that weren't close before. |
+| Genre not in catalog | Midnight Coding, Library Rain, Spacewalk Thoughts | Midnight Coding, Library Rain, Spacewalk Thoughts | No change to top 3 — genre_similarity is 0 for every song here either way, so only the (irrelevant) genre weight changed, not the ranking. |
+| High-energy acoustic | Library Rain, Spacewalk Thoughts, Etude for Rain (genre match) | Library Rain, Midnight Coding, Spacewalk Thoughts | Etude for Rain (the one genre match) dropped out of the top 3, replaced by a closer-energy song. |
+| All-mismatch | Velvet Whisper, Concrete Kingdom, Warehouse Pulse | Velvet Whisper, Sunset Skank, Crossroads Blues | Genre is 0 for every song regardless of weight, so the reshuffle here is purely from the doubled energy term rewarding closer energy matches more strongly. |
+
+**Takeaway:** halving the genre weight and doubling the energy weight consistently demotes exact genre matches whenever a non-matching song has closer energy — genre stops being able to "win" on its own and has to be backed up by energy or mood agreement. Profiles where genre never matched anything in the catalog (Genre not in catalog, All-mismatch) show that the genre weight change itself did nothing there; any reshuffling in those cases came entirely from the energy weight.
+
+---
+
 ## Limitations and Risks
 
 Summarize some limitations of your recommender.

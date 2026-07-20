@@ -2,110 +2,77 @@
 
 ## 1. Model Name  
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
+**IKnowYou**
 
 ---
 
 ## 2. Intended Use  
 
-Describe what your recommender is designed to do and who it is for. 
+This is a classroom exploration built for the ai110 Module 3 assignment — it is not intended for real users. Its purpose is to simulate, at a small scale, how a content-based music recommender turns song attributes and a stated "taste profile" into a ranked list of suggestions, so the underlying mechanics (scoring, ranking, explanation) can be inspected and reasoned about.
 
-Prompts:  
-
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+It generates a top-`k` ranked list of songs from the 18-song catalog in `data/songs.csv`, along with a short explanation string per recommendation (e.g. "Matches favorite genre 'lofi'; Energy is close to target"). It assumes the user has already stated explicit preferences up front via a `UserProfile` — `favorite_genre`, `favorite_mood`, `target_energy`, and `likes_acoustic` — rather than inferring preferences from listening history or behavior. There is no collaborative-filtering component and no concept of other users; each recommendation is generated purely from one profile against the static catalog.
 
 ---
 
 ## 3. How the Model Works  
 
-Explain your scoring approach in simple language.  
+Each song has a `genre`, `mood`, `energy` (0–1), `tempo_bpm`, `valence`, `danceability`, and `acousticness` (0–1). A user's taste profile states a favorite genre, a favorite mood, a target energy level, and whether they like acoustic music. Of these song attributes, only `genre`, `mood`, `energy`, and `acousticness` are actually used for scoring — `tempo_bpm`, `valence`, and `danceability` are stored on each song but currently ignored, because the `UserProfile` has no corresponding preference for them.
 
-Prompts:  
+To score a song, the model adds up four ingredients, each counted equally:
 
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
+- A full point if the song's genre exactly matches the user's favorite genre, otherwise nothing.
+- A full point if the song's mood exactly matches the user's favorite mood, otherwise nothing.
+- A partial point based on how close the song's energy is to the user's target energy — the closer, the more points, with no points lost for an exact match and points lost gradually as the gap grows.
+- A partial point based on acousticness — if the user likes acoustic music, a more acoustic song scores higher; if not, a less acoustic song scores higher.
 
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+The four points are added together into one total score. Songs are then sorted from highest to lowest score, and the top few are returned as the recommendations, each with a plain-language explanation of which ingredients contributed.
+
+This is the starter logic as implemented — the genre and mood matching is a strict yes/no match rather than a graded similarity (e.g., "indie pop" gets no credit toward a "pop" preference, even though it's a close relative).
 
 ---
 
 ## 4. Data  
 
-Describe the dataset the model uses.  
+The catalog (`data/songs.csv`) contains 18 songs. Each song lists an id, title, artist, genre, mood, energy, tempo (BPM), valence, danceability, and acousticness.
 
-Prompts:  
+Genres repeat unevenly: `lofi` (3 songs), `pop` (2 songs), and one song each in `rock`, `ambient`, `jazz`, `synthwave`, `indie pop`, `folk`, `hip hop`, `r&b`, `metal`, `reggae`, `edm`, `classical`, and `blues` (15 distinct genres total).
 
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+Moods are similarly uneven: `chill` (3 songs), `happy` and `intense` (2 songs each), and one song each in `relaxed`, `moody`, `focused`, `nostalgic`, `triumphant`, `romantic`, `anxious`, `playful`, `euphoric`, `melancholy`, and `longing` (14 distinct moods total).
+
+No data was added to or removed from the starter catalog. Because most genres and moods appear only once, the catalog can't really represent within-genre or within-mood variety (e.g., there's only one `hip hop` song, so the model can't distinguish "the right kind of hip hop" from "hip hop in general"). There's also no listening-history, popularity, or lyrical/language data — the dataset only captures audio-feature-style attributes and single-label genre/mood tags.
 
 ---
 
 ## 5. Strengths  
 
-Where does your system seem to work well  
+The scoring works most cleanly for profiles where all four preference terms (genre, mood, energy, acousticness) point in the same direction — e.g. the default lofi/chill profile, where the catalog's three `lofi`/`chill` songs (Library Rain, Midnight Coding, Focus Flow) score highest and stay clustered at the top for a sensible reason (agreement across all four terms), not because one term is dominating by accident.
 
-Prompts:  
-
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+The energy-similarity term (inverse distance rather than exact match) does what it's meant to do: it rewards near-misses instead of penalizing them the same as far misses, which is visible in the adversarial "genre not in catalog" test, where songs with close energy and mood match still surfaced sensibly even with zero genre credit.
 
 ---
 
 ## 6. Limitations and Bias 
-
-Where the system struggles or behaves unfairly. 
-
-Prompts:  
-
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
+- genre_similarity and mood_similarity are binary (1.0 or 0.0) — a song in the user's favorite genre gets a full point no matter how well it otherwise fits, while every other genre gets zero credit regardless of similarity. Since recommend_songs re-ranks by this score every call, users are pushed deeper into their stated genre/mood with each recommendation cycle and rarely see adjacent genres that might overlap in energy/valence/acousticness. This is the single biggest bubble driver — there's no notion of genre adjacency (e.g., "indie folk" vs "folk").
+- The system does not consider tempo_bpm, valence, or danceability. Specifically, because the `UserProfile` class only had a `favorite_genre`, `favorite_mood`, `target_energy`, and `likes_acoustic`, I decided to keep the system within those confines. Also, the system doesn't have previous usage information that could make for more effective recommendation strategies. 
 
 ---
 
 ## 7. Evaluation  
 
-How you checked whether the recommender behaved as expected. 
+I ran `src/main.py` against eight user profiles: four intended as plausible real-world profiles (default lofi/chill, hip hop, classical, pop) and four adversarial profiles specifically designed to stress-test the additive scoring model (contradictory energy/mood, genre not in catalog, high-energy acoustic, all-mismatch — see `src/main.py` and README "Adversarial Profiles"). For each, I checked that `recommend_songs` still returned `k` results with coherent explanations, even when every term mismatched (the all-mismatch case), and that `genre_similarity` correctly degraded to 0.0 for every song rather than erroring when the favorite genre wasn't in the catalog.
 
-Prompts:  
+I also ran a small weight-sensitivity experiment (doubling the energy weight, halving the genre weight) across all eight profiles and recorded how the top-3 rankings shifted — documented in README "Experiments I Tried."
 
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
-
-No need for numeric metrics unless you created some.
+What surprised me was how much the acoustic_bonus term alone could carry a recommendation to the top of the list — in several adversarial profiles (e.g. "contradictory energy/mood," "genre not in catalog"), the top-ranked songs won mostly on high acousticness rather than genre or mood match, showing that with all weights equal, a single continuous term can dominate over two binary terms when both binary terms return 0.
 
 ---
 
 ## 8. Future Work  
 
-Ideas for how you would improve the model next.  
-
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+The clearest next improvement would be replacing the binary genre and mood matching with a graded similarity scale (e.g. a genre-adjacency table or embedding-based distance) instead of exact-match-or-nothing. Right now "indie pop" gets the same score (0.0) against a "pop" preference as "metal" does, even though one is clearly a closer relative — this is the main driver of the genre bubble noted in Section 6. A graded scale would let adjacent genres/moods earn partial credit, which should reduce over-narrowing across repeated recommendation cycles without requiring collaborative or usage-history data.
 
 ---
 
 ## 9. Personal Reflection  
 
-A few sentences about your experience.  
-
-Prompts:  
-
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
+Building this gave me a much better under-the-hood sense of how a recommender like Spotify's actually works. I like the idea of mixing content-based filtering (matching songs to stated attributes, like this project does) with collaborative filtering (recommending based on what similar users liked) — Spotify does both, which is part of why it's able to suggest things I wouldn't have picked myself but end up enjoying, since I like to explore outside what I normally listen to. Working through this project's additive scoring model made concrete for me why a purely content-based system (like this one) tends to narrow toward exactly what you already said you like, and helped me understand at a much more concrete level how bandit algorithms and collaborative filtering complement content-based scoring to produce the kind of exploratory recommendations I notice and appreciate in Spotify.
